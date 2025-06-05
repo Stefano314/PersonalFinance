@@ -14,14 +14,14 @@ cmap_custom = plt.colormaps['tab20']
 # Fonts
 # fontname = 'SourceCodePro-Light.ttf'
 # fontname = 'times.ttf'
-fontname = 'CascadiaCode.ttf'
+# fontname = 'CascadiaCode.ttf'
 
-for font in fm.findSystemFonts(fontpaths=None, fontext='ttf'):
-    if fontname in font:
-        fontname=font
+# for font in fm.findSystemFonts(fontpaths=None, fontext='ttf'):
+#     if fontname in font:
+#         fontname=font
 
-custom_font = fm.FontProperties(fname=fontname)
-mpl.rcParams['font.family'] = custom_font.get_name()
+# custom_font = fm.FontProperties(fname=fontname)
+# mpl.rcParams['font.family'] = custom_font.get_name()
 
 # Font sizes
 mpl.rcParams['axes.titlesize'] = 14
@@ -41,7 +41,7 @@ def overlay_generic_graph(ax, dataset : pl.DataFrame, col_to_plot : str, **kwarg
     ax.legend()
 
 
-def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6), additional_plot=None):
+def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6), additional_plots=None):
     """
     Plots the movements history.
     """
@@ -80,13 +80,14 @@ def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6
 
     # If we want to overlay a generic plot, simply pass a dict with the name and the given parameters (dataset included).
     # The axis are passed by default.
-    if additional_plot is not None:
-        additional_plot['plot_function'](ax, **additional_plot['plot_parameters'])
+    if additional_plots is not None:
+        for add_plot in additional_plots:
+            add_plot['plot_function'](ax, **add_plot['plot_parameters'])
     plt.legend()
     plt.show()
 
 
-def plot_history_balance(balance_df=None, time_threshold=None, figsize=(12, 6), additional_plot=None):
+def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None, figsize=(12, 6), additional_plots=None):
     """
     Plots the movements history.
     """
@@ -102,8 +103,13 @@ def plot_history_balance(balance_df=None, time_threshold=None, figsize=(12, 6), 
     plt.figure(figsize=figsize)
     ax = plt.gca()
     x = balance_df[mov_cols[0]]
-    y = balance_df[mov_cols[-1]]
+    y = None
 
+    if balance_col is None:
+        y = balance_df[mov_cols[-1]]
+    else:
+        y = balance_df[balance_col]
+    
     y_min, y_max = y.min(), y.max()
     y_min = min(y_min, 0)
     plt.yticks(nice_range(y_min, y_max, 30))  # Increase 'num' for more ticks
@@ -126,8 +132,9 @@ def plot_history_balance(balance_df=None, time_threshold=None, figsize=(12, 6), 
 
     # If we want to overlay a generic plot, simply pass a dict with the name and the given parameters (dataset included).
     # The axis are passed by default.
-    if additional_plot is not None:
-        additional_plot['plot_function'](ax, **additional_plot['plot_parameters'])
+    if additional_plots is not None:
+        for add_plot in additional_plots:
+            add_plot['plot_function'](ax, **add_plot['plot_parameters'])
     plt.legend()
         
     plt.show()

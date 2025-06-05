@@ -42,16 +42,16 @@ def update_balance_file(new_balance : float, balance_file_path : str = BALANCE_H
         f.write(f"""\n{dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")};{new_balance}""")
 
 
-def update_movements_file(new_orig_mov_file : str, movements_file_path : str = MOVEMENTS_HISTORY_FILE):
+def update_movements_file(new_orig_mov_file : str, movements_file_path : str = MOVEMENTS_HISTORY_FILE, header_start=13):
     """
     NOTE: This function is made for a very specific bank file format, using an excel. It's quite easy to adapt tho.
     
     Updates the movements history file with a new movements file. The new movements will be appended to the existing file,
     and it will not produce duplicates.
     """
-    original_mov_file = pd.read_excel(new_orig_mov_file, header=13) # 13 since the bank file sucks and starts at row 14
+    original_mov_file = pd.read_excel(new_orig_mov_file, header=header_start) # 13 since the bank file sucks and starts at row 14
     original_mov_file = original_mov_file[[c for c in original_mov_file.columns if 'unnamed' not in c.lower()]]
-    original_mov_file.columns = [c.lower() for c in original_mov_file.columns]
+    original_mov_file.columns = [c.lower().strip() for c in original_mov_file.columns]
 
     # Append to the history movements file the new content
     with open(movements_file_path, 'a') as f:
