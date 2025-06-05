@@ -1,5 +1,6 @@
 import polars as pl
 
+# Balances and movements
 BALANCE_HISTORY_FILE = 'data/history/balance.csv'
 MOVEMENTS_HISTORY_FILE = 'data/history/movements.csv'
 
@@ -8,3 +9,7 @@ movements_file_schema = {'data' : pl.Datetime, 'operazione' : pl.Utf8, 'dettagli
                          'categoria' : pl.Utf8, 'valuta' : pl.Utf8, 'importo' : pl.Float64}
 
 balance_file_schema = {'date' : pl.Datetime, 'balance' : pl.Float64}
+
+# Stocks and Bonds
+STOCKS_HISTORY_PATH = 'Libs/Profile/Data/stocks_history/'
+
