@@ -29,9 +29,16 @@ class FinancialPortfolio:
     
     def get_ammounts_with_risks(self):
         """
-        {name : [ammount, risk], ... }
+        {name : [ammount, risk], ... }.
         """
         return {name : [stock.stock_total_price, stock.stock_prior_risk] for name, stock in self.stocks.items()}
+
+
+    def get_stock(self, stock_name):
+        """
+        Get Stock object from dict.
+        """
+        return self.stocks[stock_name]
 
 
     def __str__(self):

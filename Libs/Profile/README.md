@@ -9,14 +9,15 @@ The risks are given as a prior probability.
 ### Example
 ```python
 from Libs.Profile.stocks import Stock
+from Libs.Profile.stocks import get_stock_current_price
 
-test_stock = Stock(stock_name='S&P500', stock_amount=100, stock_price=50.2, stock_prior_risk=0.001)
+test_stock = Stock(stock_name='SP600', stock_amount=100, stock_price=get_stock_current_price('SP600'), stock_prior_risk=0.001)
 print(test_stock)
-test_stock.update_stock(stock_prior_risk=0)
+test_stock.update_stock(stock_prior_risk=0.002)
 print(test_stock)
 test_stock.save_history()
 
-test_stock = Stock(stock_to_load='S&P500.csv')
+test_stock = Stock(stock_to_load='SP600.csv')
 ```
 
 # **Portfolio**

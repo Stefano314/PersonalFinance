@@ -1,14 +1,22 @@
 import polars as pl
 import numpy as np
 import datetime as dt
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+import polars as pl
 
-def string_to_timestamp(date_str, fmt="%Y-%m-%d"):
+def string_to_numeric_timestamp(date_str, fmt="%Y-%m-%d"):
     date = dt.datetime.strptime(date_str, fmt)
     return int(date.timestamp() * 1_000_000) # Polars wants us, maybe it can be changed
 
-def timestamp_to_string(timestamp, fmt="%Y-%m-%d"):
+
+def numeric_timestamp_to_string(timestamp, fmt="%Y-%m-%d"):
     date = dt.datetime.fromtimestamp(timestamp / 1_000_000)
     return date.strftime(fmt)
+
+
+def get_date_range(start_date : str, end_date : str, interval='1mo'):
+    return [d.strftime("%Y-%m-%d") for d in pl.date_range(start=pl.lit(start_date), end=pl.lit(end_date), interval=interval, eager=True).to_list()]
 
 
 def get_regularized_dataset(dataset : pl.DataFrame, reg_period='1d') -> pl.DataFrame:
@@ -36,12 +44,13 @@ def get_moving_average(dataset : pl.DataFrame, window_size=2, regularize=False) 
 
 def convert_date_to_numeric(dataset : pl.DataFrame, date_cols : list=None) -> pl.DataFrame:
     """
-    Take a polars datetime [us] column and convert it to an integer in the form YYYYMMDD.
+    Take a polars datetime [us] column and convert it to an integer in the form YYYY-MM-DD.
+    Can also take a list of dates
     """
 
     # For convenience, if we pass the list of string dates we get back the conversion    
     if isinstance(dataset, list):
-        return np.array([string_to_timestamp(dat) for dat in dataset]).reshape(-1,1)
+        return np.array([string_to_numeric_timestamp(dat) for dat in dataset]).reshape(-1,1)
 
     for col in date_cols:
         # dataset = dataset.with_columns(pl.col(col).cast(pl.Utf8).str.slice(0,10).str.replace_all('-', '').cast(pl.Int32))
@@ -57,7 +66,7 @@ def convert_numeric_to_date(dataset : pl.DataFrame, date_cols : list=None) -> pl
 
     # For convenience, if we pass the list of numbers we get back the conversion    
     if isinstance(dataset, list):
-        return [timestamp_to_string(number) for number in dataset]
+        return [numeric_timestamp_to_string(number) for number in dataset]
 
     for col in date_cols:
         # dataset = dataset.with_columns(
