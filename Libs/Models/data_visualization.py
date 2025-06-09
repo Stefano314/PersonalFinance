@@ -37,7 +37,17 @@ mpl.rcParams['figure.titlesize'] = 16
 from Libs.Management.bank_api import get_history_movements, get_history_balance
 from Libs.Models.function_utils import nice_range
 
-def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6), show=True):
+def get_uniformed_x(x_vals : list):
+    """
+    Returns the sorted list of all X values encountered (1D)
+    """
+    uniformed_x = set(x_vals[0])
+    for x in x_vals[1:]:
+        uniformed_x.update(set(x))
+    return sorted(list(uniformed_x))
+
+
+def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6)):
     """
     Plots the movements history.
     """
@@ -74,11 +84,12 @@ def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6
     plt.tight_layout()
     plt.legend()
 
-    if show:
-        plt.show()
+    fig = plt.gcf()
+    fig.set_size_inches(figsize)
+    return fig
 
 
-def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None, figsize=(12, 6), show=True):
+def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None, figsize=(12, 6)):
     """
     Plots the movements history.
     """
@@ -91,7 +102,6 @@ def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None,
     if time_threshold:
         balance_df = balance_df.filter(pl.col(balance_df.columns[0])>dt.datetime.strptime(time_threshold, '%Y-%m-%d'))
 
-    plt.figure(figsize=figsize)
     x = balance_df[mov_cols[0]]
     y = None
 
@@ -121,29 +131,73 @@ def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None,
     plt.tight_layout()
     plt.legend()
     
-    if show:
-        plt.show()
+    fig = plt.gcf()
+    fig.set_size_inches(figsize)
+
+    return fig
 
 
-def plot_generic_timeseries(dates : list, vals : list, figsize=(12,6), show=True, title=None):
+def plot_generic_polars(dataset : list, x_col : str, y_col : str, params={}):
     """
+    Plot a generic polars dataframe.
+    NOTE: if you want to plot over balance or movements, x_cols should probably be a datetime [mu].
     """
-    plt.figure(figsize=figsize)
 
-    numerical_dates = [convert_date_to_numeric(dates)]
+    x = dataset[x_col]
+    y = dataset[y_col]
 
-    plt.plot(numerical_dates, vals, marker='o', linestyle='--', linewidth=1, color='black', label='Payment', alpha=0.7)
+    marker='o' if params.get('marker') is None else params.get('marker')
+    linestyle='--' if params.get('linestyle') is None else params.get('linestyle')
+    linewidth=1 if params.get('linewidth') is None else params.get('linewidth')
+    color='black' if params.get('color') is None else params.get('color')
+    alpha=0.7 if params.get('alpha') is None else params.get('alpha')
 
-    if title is not None:
-        plt.title(title)
+    plt.plot(x, y, marker=marker, linestyle=linestyle, 
+             linewidth=linewidth, color=color, label=params.get('label'), alpha=alpha)
 
-    plt.xlabel('Date')
-    plt.ylabel('€')
-    plt.xticks(numerical_dates, dates)
-    plt.xticks(rotation=45)
+    if 'title' in params:
+        plt.title(params['title'])
+
+    plt.xlabel(params.get('xlabel'))
+    plt.ylabel(params.get('ylabel'))
+    plt.xticks(rotation=45 if params.get('rotation') is None else params.get('rotation'))
     plt.grid(alpha=0.4)
     plt.tight_layout()
     plt.legend()
 
-    if show:
-        plt.show()
+    fig = plt.gcf()
+    if 'figsize' in params:
+        fig.set_size_inches(params.get('figsize'))
+
+    return fig
+
+
+def plot_generic_timeseries(dates : list, vals : list, params={}):
+    """
+    Plot a generic time series graph.
+    """
+
+    numerical_dates = convert_date_to_numeric(dates)[:,0]
+
+    marker='o' if params.get('marker') is None else params.get('marker')
+    linestyle='--' if params.get('linestyle') is None else params.get('linestyle')
+    linewidth=1 if params.get('linewidth') is None else params.get('linewidth')
+    color='black' if params.get('color') is None else params.get('color')
+    alpha=0.7 if params.get('alpha') is None else params.get('alpha')
+    plt.plot(numerical_dates, vals, marker=marker, linestyle=linestyle, 
+             linewidth=linewidth, color=color, label=params.get('label'), alpha=alpha)
+
+    if 'title' in params:
+        plt.title(params['title'])
+
+    plt.xlabel(params.get('xlabel'))
+    plt.ylabel(params.get('ylabel'))
+    plt.xticks(numerical_dates, dates, rotation=45 if params.get('rotation') is None else params.get('rotation'))
+    plt.grid(alpha=0.4)
+    plt.tight_layout()
+    plt.legend()
+
+    fig = plt.gcf()
+    if 'figsize' in params:
+        fig.set_size_inches(params.get('figsize'))
+    return fig

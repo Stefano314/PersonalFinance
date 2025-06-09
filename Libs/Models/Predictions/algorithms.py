@@ -1,6 +1,7 @@
 import polars as pl
 import numpy as np
 from sklearn.linear_model import LinearRegression
+import statsmodels.api as sm
 
 # Custom Libs
 from Libs.global_vars import balance_file_schema, movements_file_schema
@@ -27,6 +28,7 @@ def linear_fit(dataset : pl.DataFrame, cols_to_fit = None):
 
     # Linear imputation for each variable if needed
     if dataset.select(numerical_cols).null_count().item()>0:
+        print('[FUNINFO] Performing linear imputation ..')
         for time_col in time_columns:
             for num_col in numerical_cols:
                 dataset = simple_linear_imputation(dataset, x_col=time_col, y_col=num_col)
@@ -77,3 +79,41 @@ def goal_reach_prediction(model : dict, start_date : str, goal : float):
         return convert_numeric_to_date([int(x_solution)])
     else:
         return None
+
+
+def fit_generic_polynomial_statsmodel(dataset : pl.DataFrame, x_col : str, y_col : str, deg=1):
+    """
+    """
+    x = dataset.select(x_col).to_numpy()
+    y = dataset[y_col].to_numpy()
+
+    x_poly = np.ones((x.shape[0], deg + 1))
+    for i in range(1, deg + 1):
+        x_poly[:, i] = x[:, 0] ** i
+
+    model = sm.OLS(y, x_poly).fit(method = "qr")
+
+    dataset = dataset.with_columns(model_fit=model.predict(x_poly).T[0])
+
+    return dataset, {'model' : model, 'x_col' : x_col}
+
+
+def model_predict_statsmodel(X : np.ndarray, model : dict, deg=1, pred_col=None):
+    """
+    """
+    if X.ndim == 1:
+        X = X.reshape((-1,1))
+    if pred_col is None:
+        pred_col='model_prediction'
+
+    X_poly = np.ones((X.shape[0], deg + 1))
+    for i in range(1, deg + 1):
+        X_poly[:, i] = X[:, 0] ** i
+    
+    prediction = model['model'].get_prediction(X_poly).summary_frame()
+    A = pl.DataFrame()
+
+    for ind, column_vector in enumerate(X.T):
+        A = A.with_columns(pl.Series(model['x_col'], column_vector))
+    A = A.with_columns(pl.Series(pred_col, prediction['mean'].values.T))
+    return A, prediction
