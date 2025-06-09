@@ -2,7 +2,7 @@ from Libs.Profile.stocks import Stock
 
 class FinancialPortfolio:
     """
-    Represents a financial subject with a name and an optional description.
+    Represents a financial subject.
     """
 
     def __init__(self, name: str, stocks : list=None):

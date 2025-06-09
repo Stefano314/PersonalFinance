@@ -6,9 +6,11 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import matplotlib.font_manager as fm
 
+# Custom Libs
+from Libs.Profile.stocks import Stock
+from Libs.Models.data_manipulation import convert_date_to_numeric, convert_numeric_to_date
+
 # Colors
-cse_color = 'royalblue'
-secondary_color = 'darkred'
 cmap_custom = plt.colormaps['tab20']
 
 # Fonts
@@ -35,13 +37,7 @@ mpl.rcParams['figure.titlesize'] = 16
 from Libs.Management.bank_api import get_history_movements, get_history_balance
 from Libs.Models.function_utils import nice_range
 
-
-def overlay_generic_graph(ax, dataset : pl.DataFrame, col_to_plot : str, **kwargs):
-    ax.plot(dataset[dataset.columns[0]], dataset[col_to_plot], **kwargs)
-    ax.legend()
-
-
-def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6), additional_plots=None):
+def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6), show=True):
     """
     Plots the movements history.
     """
@@ -55,12 +51,11 @@ def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6
         movements_df = movements_df.filter(pl.col(movements_df.columns[0])>dt.datetime.strptime(time_threshold, '%Y-%m-%d'))
 
     plt.figure(figsize=figsize)
-    ax = plt.gca()
     x = movements_df[mov_cols[0]]
     y = movements_df[mov_cols[-1]]
 
     y_min, y_max = y.min(), y.max()
-    plt.yticks(nice_range(y_min, y_max, 20))  # Increase 'num' for more ticks
+    plt.yticks(nice_range(y_min, y_max, 20))
     plt.plot(x, y, marker='o', linestyle='--', linewidth=1, color='black', label='Payment', alpha=0.7)
 
     # Fill areas above 0 (green)
@@ -77,17 +72,13 @@ def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6
     plt.xticks(rotation=45)
     plt.grid(alpha=0.5)
     plt.tight_layout()
-
-    # If we want to overlay a generic plot, simply pass a dict with the name and the given parameters (dataset included).
-    # The axis are passed by default.
-    if additional_plots is not None:
-        for add_plot in additional_plots:
-            add_plot['plot_function'](ax, **add_plot['plot_parameters'])
     plt.legend()
-    plt.show()
+
+    if show:
+        plt.show()
 
 
-def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None, figsize=(12, 6), additional_plots=None):
+def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None, figsize=(12, 6), show=True):
     """
     Plots the movements history.
     """
@@ -101,7 +92,6 @@ def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None,
         balance_df = balance_df.filter(pl.col(balance_df.columns[0])>dt.datetime.strptime(time_threshold, '%Y-%m-%d'))
 
     plt.figure(figsize=figsize)
-    ax = plt.gca()
     x = balance_df[mov_cols[0]]
     y = None
 
@@ -112,7 +102,7 @@ def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None,
     
     y_min, y_max = y.min(), y.max()
     y_min = min(y_min, 0)
-    plt.yticks(nice_range(y_min, y_max, 30))  # Increase 'num' for more ticks
+    plt.yticks(nice_range(y_min, y_max, 30))
     plt.plot(x, y, marker='o', linestyle='--', linewidth=1, color='black', label='Balance', alpha=0.7)
 
     # Fill areas above 0 (green)
@@ -129,13 +119,31 @@ def plot_history_balance(balance_df=None, balance_col=None, time_threshold=None,
     plt.xticks(rotation=45)
     plt.grid(alpha=0.5)
     plt.tight_layout()
-
-    # If we want to overlay a generic plot, simply pass a dict with the name and the given parameters (dataset included).
-    # The axis are passed by default.
-    if additional_plots is not None:
-        for add_plot in additional_plots:
-            add_plot['plot_function'](ax, **add_plot['plot_parameters'])
     plt.legend()
-        
-    plt.show()
+    
+    if show:
+        plt.show()
 
+
+def plot_generic_timeseries(dates : list, vals : list, figsize=(12,6), show=True, title=None):
+    """
+    """
+    plt.figure(figsize=figsize)
+
+    numerical_dates = [convert_date_to_numeric(dates)]
+
+    plt.plot(numerical_dates, vals, marker='o', linestyle='--', linewidth=1, color='black', label='Payment', alpha=0.7)
+
+    if title is not None:
+        plt.title(title)
+
+    plt.xlabel('Date')
+    plt.ylabel('€')
+    plt.xticks(numerical_dates, dates)
+    plt.xticks(rotation=45)
+    plt.grid(alpha=0.4)
+    plt.tight_layout()
+    plt.legend()
+
+    if show:
+        plt.show()

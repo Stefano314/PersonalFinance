@@ -3,6 +3,25 @@ import polars as pl
 import numpy as np
 import os
 
+# Graph
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.font_manager as fm
+cmap_custom = plt.colormaps['tab20']
+
+# Fonts
+# fontname = 'SourceCodePro-Light.ttf'
+# fontname = 'times.ttf'
+# fontname = 'CascadiaCode.ttf'
+
+# for font in fm.findSystemFonts(fontpaths=None, fontext='ttf'):
+#     if fontname in font:
+#         fontname=font
+
+# custom_font = fm.FontProperties(fname=fontname)
+# mpl.rcParams['font.family'] = custom_font.get_name()
+
+
 import requests
 from bs4 import BeautifulSoup
 
@@ -192,6 +211,7 @@ def project_stock_price(stock : Stock, expected_year_gain : float, end_date : st
     """
     We need an expected year percentage gain. The end_date must be in the form 'YYYY-MM-DD'.
     dividends_months is None for no accumulation, otherwise is how many months pass until the cap is increased (ex. dividends_months=4)
+    Returns the x and y that made the graph.
 
     a2 = a1(1+r_m*t)
     a3 = a2(1+r_m*t)
@@ -258,3 +278,50 @@ def project_stock_price(stock : Stock, expected_year_gain : float, end_date : st
             date_range = [dt.datetime.strptime(d, '%Y-%m-%d').date() for d in date_range]
 
         return date_range, earnings_vector
+
+
+def plot_stock_value(stock : Stock, time_range=None, figsize=(12, 6)):
+    """
+    Plots Stock value over time.
+    Returns the x and y that made the graph (x=numerical dates)
+    """
+    from Libs.Models.data_manipulation import string_to_numeric_timestamp
+
+    stock_values = np.array(stock.stock_history['stock price'])
+    stock_dates = np.array(stock.stock_history['date'])
+    numerical_stock_dates = [string_to_numeric_timestamp(d, fmt='%Y-%m-%d %H:%M:%S') for d in stock_dates]
+
+    val_derivative = np.insert(np.diff(stock_values),0,0)
+    val_derivative = val_derivative/val_derivative.max()
+    colors = np.where(val_derivative < 0, 'red', 'green')
+
+    if time_range:
+        indexes_to_keep = [ind for ind,d in stock_dates if d>=time_range[0] and d<=time_range[1]]
+        stock_values = stock_values[indexes_to_keep]
+        stock_dates = stock_dates[indexes_to_keep]
+
+    plt.figure(figsize=figsize)
+    ax = plt.gca()
+    plt.plot(numerical_stock_dates, stock_values, marker='o', linestyle='--', linewidth=1, color='black', label='Stock Value', alpha=0.7)
+
+    # Derivatives up or down
+    for stock_d, stock_v, deriv, color in zip(numerical_stock_dates, stock_values, val_derivative, colors):
+        ax.quiver(
+                stock_d, stock_v, 0, deriv, headaxislength=3.5, alpha=0.4,
+                color=color, width=0.003, scale=1, angles='xy',
+                scale_units='xy', headwidth=3, headlength=4
+            )
+
+    plt.axhline(np.mean(stock_values), color='darkred', linewidth=0.5, linestyle='--', label='mean') # Mean value reference
+    plt.xticks(numerical_stock_dates, stock_dates)
+    # plt.ylim([stock_values.min()*0.97, stock_values.max()*1.03])
+    plt.title(f"Stock Value ({dt.datetime.strptime(stock_dates[0], '%Y-%m-%d %H:%M:%S').strftime('%Y/%m/%d')} - {dt.datetime.strptime(stock_dates[-1], '%Y-%m-%d %H:%M:%S').strftime('%Y/%m/%d')})")
+    plt.xlabel('Date')
+    plt.ylabel('€')
+    plt.xticks(rotation=45)
+    plt.grid(alpha=0.5)
+    plt.tight_layout()
+
+    plt.legend()        
+    plt.show()
+    return numerical_stock_dates, stock_values

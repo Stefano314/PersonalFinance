@@ -19,11 +19,16 @@ def get_date_range(start_date : str, end_date : str, interval='1mo'):
     return [d.strftime("%Y-%m-%d") for d in pl.date_range(start=pl.lit(start_date), end=pl.lit(end_date), interval=interval, eager=True).to_list()]
 
 
-def get_regularized_dataset(dataset : pl.DataFrame, reg_period='1d') -> pl.DataFrame:
+def get_regularized_dataset(dataset : pl.DataFrame, reg_period='1d', x_cols=None, y_cols=None) -> pl.DataFrame:
     """
-    Groups the dataset by regular date intervals. It creates a dataset of imports.
+    Groups the dataset by regular date intervals. It summs the import content in the grouped reg_period.
+    --> dates equally spaced, the imports are the sum in that periods
     """
-    dataset_cols = dataset.columns
+    if x_cols is None or y_cols is None:
+        dataset_cols = dataset.columns
+    else:
+        dataset_cols=[x_cols,y_cols]
+
     regularized_dataset = dataset.group_by_dynamic(dataset_cols[0], every=reg_period).agg([pl.col(dataset_cols[-1]).sum().alias("total_value")])
     return regularized_dataset
 

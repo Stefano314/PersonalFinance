@@ -1,4 +1,5 @@
 import polars as pl
+import numpy as np
 from sklearn.linear_model import LinearRegression
 
 # Custom Libs
@@ -41,5 +42,38 @@ def linear_fit(dataset : pl.DataFrame, cols_to_fit = None):
 
     return dataset, {'model' : linear_model, 'x_cols' : time_columns}
 
+def get_model_prediction(X : np.ndarray, model : dict, prediction_column=None):
+    """
+    X : X matrix to predict (if single, it should be a vector column, Ax=pred).
+    model is like {'model' : linear_model, 'x_cols' : time_columns}
+    """
+
+    if prediction_column is None:
+        prediction_column='model_prediction'
+
+    prediction = model['model'].predict(X)
+    A = pl.DataFrame()
+
+    for ind, column_vector in enumerate(X.T):
+        A = A.with_columns(pl.Series(model['x_cols'][ind], column_vector))
+
+    A = A.with_columns(pl.Series(prediction_column, prediction.T[0]))
+    return A
     
 
+def goal_reach_prediction(model : dict, start_date : str, goal : float):
+    """
+    Given a model that has .predict() (sklearn mainly), get the date that reaches the specified goal.
+    goal_reach_prediction(linear_model, '2025-07-01', 40_000)
+    """
+    from scipy.optimize import fsolve
+    from Libs.Models.data_manipulation import convert_numeric_to_date
+
+    def func(x):
+        return model['model'].predict([x])[0,0] - goal
+
+    x_solution, = fsolve(func, convert_date_to_numeric([start_date])[0,0])
+    if abs(model['model'].predict([[x_solution]])[0,0]-goal) < 1e-6:
+        return convert_numeric_to_date([int(x_solution)])
+    else:
+        return None
