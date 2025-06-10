@@ -116,4 +116,8 @@ def model_predict_statsmodel(X : np.ndarray, model : dict, deg=1, pred_col=None)
     for ind, column_vector in enumerate(X.T):
         A = A.with_columns(pl.Series(model['x_col'], column_vector))
     A = A.with_columns(pl.Series(pred_col, prediction['mean'].values.T))
+
+    for col in [c for c in prediction.columns if c!='mean']:
+        A = A.with_columns(pl.Series(col, prediction[col].values.T))
+
     return A, prediction

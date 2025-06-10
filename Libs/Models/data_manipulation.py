@@ -144,3 +144,100 @@ def simple_linear_imputation(dataset: pl.DataFrame, x_col: str, y_col: str) -> p
     ]) 
 
 
+def periodic_dates_range(day=27, periodicity='month', start_date=None, end_date=None, num_periods=12):
+    """
+    Generate a range of periodic dates.
+    
+    Parameters:
+    - day: int, day of month for monthly periodicity or day interval for daily
+    - periodicity: str, 'month', 'week', or 'day'
+    - start_date: str or datetime, start date as 'YYYY-MM-DD' or datetime object (defaults to current date)
+    - end_date: str or datetime, end date as 'YYYY-MM-DD' or datetime object (if None, uses num_periods)
+    - num_periods: int, number of periods to generate (default 12)
+
+    """
+    # Parse string dates to datetime objects
+    if isinstance(start_date, str):
+        start_date = dt.datetime.strptime(start_date, '%Y-%m-%d')
+    if isinstance(end_date, str):
+        end_date = dt.datetime.strptime(end_date, '%Y-%m-%d')
+    
+    if start_date is None:
+        start_date = dt.now().replace(day=1)  # Start from beginning of current month
+    
+    dates = []
+    current_date = start_date
+    
+    if periodicity == 'month':
+        # Adjust to the specified day of the month
+        try:
+            current_date = current_date.replace(day=day)
+        except ValueError:
+            # Handle cases where day doesn't exist in the month (e.g., Feb 30)
+            current_date = current_date.replace(day=min(day, 28))
+        
+        if end_date:
+            while current_date <= end_date:
+                dates.append(current_date)
+                current_date = current_date + relativedelta(months=1)
+                # Adjust day if it doesn't exist in the new month
+                try:
+                    current_date = current_date.replace(day=day)
+                except ValueError:
+                    # Last day of month if specified day doesn't exist
+                    next_month = current_date + relativedelta(months=1)
+                    current_date = next_month.replace(day=1) - timedelta(days=1)
+        else:
+            for _ in range(num_periods):
+                dates.append(current_date)
+                current_date = current_date + relativedelta(months=1)
+                try:
+                    current_date = current_date.replace(day=day)
+                except ValueError:
+                    next_month = current_date + relativedelta(months=1)
+                    current_date = next_month.replace(day=1) - timedelta(days=1)
+    
+    elif periodicity == 'week':
+        delta = timedelta(weeks=1)
+        if end_date:
+            while current_date <= end_date:
+                dates.append(current_date)
+                current_date += delta
+        else:
+            for _ in range(num_periods):
+                dates.append(current_date)
+                current_date += delta
+    
+    elif periodicity == 'day':
+        delta = timedelta(days=day) # day parameter becomes interval
+        if end_date:
+            while current_date <= end_date:
+                dates.append(current_date)
+                current_date += delta
+        else:
+            for _ in range(num_periods):
+                dates.append(current_date)
+                current_date += delta
+    
+    else:
+        raise ValueError("Periodicity must be 'month', 'week', or 'day'")
+    
+    return dates
+
+def add_periodic_income(value: float, day=27, periodicity='month', start_date=None, end_date=None, num_periods=12):
+    """
+    """
+    dates = periodic_dates_range(
+        day=day, 
+        periodicity=periodicity, 
+        start_date=start_date, 
+        end_date=end_date, 
+        num_periods=num_periods
+    )
+    
+    df = pl.DataFrame({
+        'dates': dates,
+        'additional_income': [value] * len(dates)
+    })
+    
+    return df

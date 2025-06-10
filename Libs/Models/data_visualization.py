@@ -37,14 +37,20 @@ mpl.rcParams['figure.titlesize'] = 16
 from Libs.Management.bank_api import get_history_movements, get_history_balance
 from Libs.Models.function_utils import nice_range
 
-def get_uniformed_x(x_vals : list):
+def get_uniformed_list(vals : list):
     """
     Returns the sorted list of all X values encountered (1D)
     """
-    uniformed_x = set(x_vals[0])
-    for x in x_vals[1:]:
-        uniformed_x.update(set(x))
-    return sorted(list(uniformed_x))
+
+    for i, sub_val in enumerate(vals):
+        if isinstance(sub_val[0], dt.datetime):
+            vals[i] = [x.strftime("%Y-%m-%d") for x in sub_val]
+    
+    uniformed_vals = set(vals[0])
+    for x in vals[1:]:
+        uniformed_vals.update(set(x))
+    uniformed_vals = sorted(list(uniformed_vals))
+    return nice_range(uniformed_vals[0], uniformed_vals[-1], 30)
 
 
 def plot_history_movements(movement_df=None, time_threshold=None, figsize=(12, 6)):
@@ -154,6 +160,12 @@ def plot_generic_polars(dataset : list, x_col : str, y_col : str, params={}):
 
     plt.plot(x, y, marker=marker, linestyle=linestyle, 
              linewidth=linewidth, color=color, label=params.get('label'), alpha=alpha)
+    
+    if params.get('confidence_belt') is not None:
+        low_col, up_col = params.get('confidence_belt')
+        y_lower = dataset[low_col]
+        y_upper = dataset[up_col]
+        plt.fill_between(x, y_lower, y_upper, color='red', alpha=0.3, label='Confidence Belt 95%')
 
     if 'title' in params:
         plt.title(params['title'])
@@ -177,7 +189,10 @@ def plot_generic_timeseries(dates : list, vals : list, params={}):
     Plot a generic time series graph.
     """
 
-    numerical_dates = convert_date_to_numeric(dates)[:,0]
+    if all(dates):
+        numerical_dates = convert_date_to_numeric(dates)[:,0]
+    else:
+        numerical_dates = dates
 
     marker='o' if params.get('marker') is None else params.get('marker')
     linestyle='--' if params.get('linestyle') is None else params.get('linestyle')
@@ -192,7 +207,12 @@ def plot_generic_timeseries(dates : list, vals : list, params={}):
 
     plt.xlabel(params.get('xlabel'))
     plt.ylabel(params.get('ylabel'))
-    plt.xticks(numerical_dates, dates, rotation=45 if params.get('rotation') is None else params.get('rotation'))
+    if all(dates):
+        plt.xticks(numerical_dates, dates, rotation=45 if params.get('rotation') is None else params.get('rotation'))
+
+    if all(vals):
+        plt.yticks(vals)
+    
     plt.grid(alpha=0.4)
     plt.tight_layout()
     plt.legend()
